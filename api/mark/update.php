@@ -1,11 +1,10 @@
 <?php
-
 // required headers
 header("Access-Control-Allow-Origin: * ");
 header("Content-Type: application/json; charset=UTF-8");
 
-//require user subject to call getIdByUsername (static)
-require_once '../../models/subject.php';
+//require subject class to instantiate objects
+require_once '../../models/mark.php';
 
 //require Database class to get connect to database
 require_once '../../config/Database.php';
@@ -14,13 +13,11 @@ require_once '../../config/Database.php';
 $database = new Database();
 $conn = $database->getConnection();
 
-// instantiate product object
-$mark = new Mark($conn);
+//get subject instance here
+$mark = new mark($conn);
 
-// get posted data
-// set product property values
+//prepare posted data
 $data = json_decode(file_get_contents("php://input"), TRUE);
-var_dump($data);
 $insertIn = $data['insertIn'];
 $mark->mark = $data['mark'];
 $mark->subject_id = $data['subject_id'];
@@ -28,46 +25,47 @@ $mark->student_id = $data['student_id'];
 $res = false;
 
 switch ($insertIn){
-    case "mark1":
-        $res = $mark->create();
+    case 'mark1':
+        $res = $mark->updateMark1();
         break;
-    case "mark2":
+    case 'mark2':
         $res = $mark->updateMark2();
         break;
-    case "mark3":
+    case 'mark3':
         $res = $mark->updateMark3();
         break;
-    case "mark4":
+    case 'mark4':
         $res = $mark->updateMark4();
         break;
-    case "mark5":
+    case 'mark5':
         $res = $mark->updateMark5();
         break;
 }
 
-// use the create() method here
-// create the admin
+
+// use the update() method here
+// update the subject
 if(
+    !empty($mark->mark) &&
     !empty($mark->subject_id) &&
     !empty($mark->student_id) &&
-    !empty($mark->mark) &&
     $res
 ){
 
     // set response code
     http_response_code(200);
 
-    // display message: admin was created
-    echo json_encode(array("message" => "Mark was created."));
+    // display message: Subject was updated.
+    echo json_encode(array("message" => "Mark was updated."));
 }
 
-// message if unable to create admin
+// message if unable to update subject
 else{
 
     // set response code
     http_response_code(400);
 
-    // display message: unable to create admin
-    echo json_encode(array("message" => "Unable to create Mark."));
+    // display message: Unable to update Subject.
+    echo json_encode(array("message" => "Unable to update Mark."));
 }
-?>
+

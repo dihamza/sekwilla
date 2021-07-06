@@ -12,13 +12,6 @@
     //require utilities (need of postDta function)
     require_once "../../../config/Utilities.php";
 
-    $getData = json_decode(file_get_contents("http://localhost:8888/sec/api/student/read.php"),TRUE);
-    $nbr = sizeof($getData);
-    $counter = 0;
-    $i = 0;
-
-    //connection to database
-
     $database = new Database();
     $conn = $database->getConnection();
 
@@ -27,49 +20,30 @@
     $class = new Class_($conn);
     $classes = $class->getClasses()->fetchAll(PDO::FETCH_ASSOC);
 
-    //controlle next-previous
-    if(isset($_GET['next'])){
-        $counter = $counter + 15;
-        $i = $i + 15;
-    }
-
-    if(isset($_GET['previous']) && $i > 0){
-        $counter = $counter - 15;
-        $i = $i - 15;
-    }
-
-    //controll search with classes
-
-    if(isset($_POST['search']) && !empty($_POST['username'])){
+    //collecting posted data
+    $data = array();
+    if (isset($_POST['submit'])) {
         //collect data
-        $data = array('username' => $_POST['username']);
+        $data = [
+            'username' => $_POST['username'],
+            'password' => $_POST['password'],
+            'email' => $_POST['email'],
+            'firstname' => $_POST['firstname'],
+            'lastname' => $_POST['lastname'],
+            'class_id' => $_POST['class_id'],
+//            'gender' => $_POST['gender'],
+//            'birth' => $_POST['birth']
+        ];
 
         //Api url
-        $api_url = 'http://localhost:8888/sec/api/student/getStudent.php';
+        $api_url = 'http://localhost:8888/sec/api/student/create.php';
 
         //response
         $res = postData($api_url, $data);
 
-        $getData = json_decode($res, TRUE);
-        array_key_exists('message', $getData) ? $nbr = 0 : $nbr = 1;
-
-
-    }else if(isset($_POST['search']) &&
-        empty($_POST['username']) &&
-        !empty($_POST['class_id'])){
-        //collect data
-        $data = array('class_id' => $_POST['class_id']);
-
-        //Api url
-        $api_url = 'http://localhost:8888/sec/api/student/getStudentsInClass.php';
-
-        //response
-        $res = postData($api_url, $data);
-
-        $getData = json_decode($res, TRUE);
-
-        array_key_exists('message', $getData) ? $nbr = 0 : $nbr = sizeof($getData);
+//        echo $res;
     }
+
 ?>
 
 <!DOCTYPE html>
@@ -79,10 +53,10 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../css/nav.css">
+    <link rel="stylesheet" href="../css/addstudent.css">
     <link rel="stylesheet" href="../css/pers.css">
-    <link rel="stylesheet" href="../css/student.css">
     <link rel="stylesheet" href="font-awesome-4.7.0/css/font-awesome.min.css" >
-    <title>CSS STYLE</title>
+    <title>Ajouter un eleve</title>
 </head>
 <body>
     <div class="container">
@@ -98,8 +72,8 @@
                 <div class="element">
                     <a href="#" class="first_link"> <img src="../icons/writing 1.svg" alt="" class="one"> Élèves <img src="../icons/next.svg" alt="" class="two"></a>
                     <ul>
-                        <li><a href=""><img src="../icons/next.svg" alt="">Tous les élèves</a></li>
-                        <li><a href="addStudent.php"><img src="../icons/next.svg" alt="">Ajouter un eleve</a></li>
+                        <li><a href="students.php"><img src="../icons/next.svg" alt="">Tous les élèves</a></li>
+                        <li><a href=""><img src="../icons/next.svg" alt="">Ajouter un eleve</a></li>
                         <li><a href="delete_update.php"><img src="../icons/next.svg" alt="">supprimer/modifier</a></li>
                     </ul>
                 </div>
@@ -109,7 +83,8 @@
                     <ul>
                         <li><a href="../classes/classes.php"><img src="../icons/next.svg" alt="">Tous les Niveaux</a></li>
                         <li><a href="../classes/add.php"><img src="../icons/next.svg" alt="">Ajouter un niveau</a></li>
-                        <li><a href="../classes/delete_update.php"><img src="../icons/next.svg" alt="">supprimer/modifier</a></li>                    </ul>
+                        <li><a href="../classes/delete_update.php"><img src="../icons/next.svg" alt="">supprimer/modifier</a></li>
+                    </ul>
                 </div>
                 <div class="element">
                     <a href="#" class="first_link"> <img src="../icons/writing 1.svg" alt="" class="one"> Resultats <img src="../icons/next.svg" alt="" class="two"></a>
@@ -143,69 +118,63 @@
                 </div>
             </div>
         </nav>
-        <section class="sec1">
-            <h4>Tous les élèves</h4>
-            <form action="" class="form1" name="search" method="POST">
-                <input type="text" name="username" placeholder="chercher par username...">
-                <select name="class_id" id="class" >
-                    <option value=""  disabled selected> Niveau</option>
-                    //iterate on classes
-                    <?php foreach($classes as $option) {?>
-                        <option value="<?php echo $option['id']; ?>"><?php echo $option['name']; ?></option>
-                    <?php }?>
-                </select>
-                <input type="submit" class="fa" value="" name="search">
+        <div class="form-container">
+            <h1>Ajouter un eleve</h1>
+            <form action="" METHOD="POST">
+                <div>
+                    <label for="lastname">Nom*</label>
+                    <input type="text" name="lastname" id="lastname" required>
+                    <label for="firstname">Prenom*</label>
+                    <input type="text" name="firstname" id="firstname" required>
+                    <label for="gender">Genre*</label>
+                    <select name="gender" id="gender" required>
+                        <option value=""  disabled selected> Genre</option>
+                        <option value="M">Homme</option>
+                        <option value="F">Femme</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="birth">Date de naissance*</label>
+                    <input type="date" name="birth" id="birth" required>
+                    <select name="class_id" id="class" >
+                        <option value=""  disabled selected> Niveau</option>
+                        //iterate on classes
+                        <?php foreach($classes as $option) {?>
+                            <option value="<?php echo $option['id']; ?>"><?php echo $option['name']; ?></option>
+                        <?php }?>
+                    </select>
+                    <label for="email">Email*</label>
+                    <input type="email" name="email" id="email" required>
+                </div>
+                <div>
+                    <label for="username">Username*</label>
+                    <input type="text" name="username" id="username" class="sensitive"  required>
+                    <label for="password">Password*</label>
+                    <input type="password" name="password" id="password" class="sensitive" required>
+                    <label for="phone">Phone*</label>
+                    <input type="text" name="phone" id="phone" required>
+                </div>
+
+                <footer>
+                    <input type="button" value="Reintialiser" class="rei">
+                    <input type="submit" name="submit" value="Enregistrer" class="enreg">
+                </footer>
             </form>
-            <table class="t4">
-                <tr class="th1">
-                    <td >N°</td>
-                    <td>Photo</td>
-                    <td>Username</td>
-                    <td>Nom</td>
-                    <td >Genre</td>
-                    <td >Nivau</td>
-                    <td>Naissance</td>
-                    <td>Téléphone</td>
-                    <td>Email</td>
-                </tr>
-                <?php
-                $end1 = $counter + 15;
-                for($i ; ($i < $end1) && ($i < $nbr) ; $i++){
-                    ?>
-                    <tr class="th2">
-                        <td><?php echo $getData[$i]['id']?></td>
-                        <td><div class="photo"></div></td>
-                        <td><?php echo $getData[$i]['username']?></td>
-                        <td><?php echo $getData[$i]['firstname']." ".$getData[$i]['lastname']?></td>
-                        <td>M</td>
-                        <td><?php echo $class->getClassById($getData[$i]['class_id'])[0]['name'];?></td>
-                        <td>04/02/2006</td>
-                        <td>0606060606</td>
-                        <td><?php echo $getData[$i]['email']?></td>
-                    </tr>
-                <?php } ?>
-            </table>
-            <footer>
-                    <form action="" method="GET">
-                        <input type="submit" name="previous" class="F2" value="Précédent">
-                        <input type="submit" name="next" class="F2" value="Suivant">
-                    </form>
-            </footer>
-        </section>
+        </div>
         <div class="per-info">
             <div class="per-img">
                 <img src="../icons/man.svg" alt="">
             </div>
-            <h2><?php echo $_SESSION['lastname']." ".$_SESSION['firstname']; ?></h2>
+            <h2><?php echo $_SESSION['username']?></h2>
             <hr>
             <table>
                 <tr>
                     <td>Name :</td>
-                    <td>Flani</td>
+                    <td><?php echo $_SESSION['lastname']?></td>
                 </tr>
                 <tr>
                     <td>Prenom :</td>
-                    <td>Flan</td>
+                    <td><?php echo $_SESSION['firstname']?></td>
                 </tr>
                 <tr>
                     <td>Genre :</td>
@@ -213,35 +182,19 @@
                 </tr>
                 <tr>
                     <td>Date de naissance :</td>
-                    <td>21/05/2017</td>
-                </tr>
-                <tr>
-                    <td>Niveau :</td>
-                    <td>3</td>
-                </tr>
-                <tr>
-                    <td>Class :</td>
-                    <td>3AP-6</td>
+                    <td>05-05-2001</td>
                 </tr>
                 <tr>
                     <td>Address :</td>
                     <td>Quariter #3,rue #42 ville #18</td>
                 </tr>
                 <tr>
-                    <td>Nom Tuteure :</td>
-                    <td>Flani</td>
-                </tr>
-                <tr>
-                    <td>Prenom Tuteure :</td>
-                    <td>Flani</td>
-                </tr>
-                <tr>
-                    <td>Telephone Tuteure :</td>
+                    <td>Telephone :</td>
                     <td>0606060606</td>
                 </tr>
                 <tr>
-                    <td>Email Tuteure :</td>
-                    <td>email@email.com</td>
+                    <td>Email :</td>
+                    <td><?php echo $_SESSION['email']?></td>
                 </tr>
             </table>
         </div>

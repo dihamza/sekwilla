@@ -1,11 +1,9 @@
 <?php
+
 // required headers
 header("Access-Control-Allow-Origin: * ");
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: POST");
-header("Access-Control-Max-Age: 3600");
-header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-
 
 //require student class to instantiate an object
 require_once '../../models/student.php';
@@ -22,38 +20,45 @@ $conn = $database->getConnection();
 $student = new Student($conn);
 
 // get posted data
-
 $data = json_decode(file_get_contents("php://input"), TRUE);
-//var_dump($data);
 
+//prepare data
+$update = $data['update_username'];
 $student->firstname = $data['firstname'];
 $student->lastname = $data['lastname'];
 $student->username = $data['username'];
 $student->email = $data['email'];
 $student->password = $data['password'];
 $student->class_id = $data['class_id'];
-//$student->gender = $data['gender'];
-//$student->birth = $data['birth'];
 
 
-//use the create() method here
+//use the update() method here
+// update the student
+if( !empty($update) &&
+    $student->isExist($update)->rowCount() <= 0
 
-// create the admin
-if(
+){
+    // set response code
+    http_response_code(400);
+
+    // display message: unable to create admin
+    echo json_encode(array("message" => "Username doesn't exist"));
+}else if(
+    !empty($update) &&
     !empty($student->firstname) &&
     !empty($student->lastname) &&
     !empty($student->username) &&
     !empty($student->class_id) &&
     !empty($student->email) &&
     !empty($student->password) &&
-    $student->create()
+    $student->update($update)
 ){
 
     // set response code
     http_response_code(200);
 
     // display message: admin was created
-    echo json_encode(array("message" => "student was created."));
+    echo json_encode(array("message" => "student was Updated."));
 }
 
 // message if unable to create admin
@@ -62,7 +67,7 @@ else{
     // set response code
     http_response_code(400);
 
-    // display message: unable to create student
-    echo json_encode(array("message" => "Unable to create Student."));
-    }
+    // display message: unable to create admin
+    echo json_encode(array("message" => "Unable to update Student."));
+}
 ?>

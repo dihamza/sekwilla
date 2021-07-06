@@ -1,58 +1,32 @@
 <?php
+
     session_start();
     if($_SESSION['authorisation'] != 'admin'){
         header('location:http://localhost:8888/sec/view/admin/login.php');
     }
 
-    //require utilities (need of postDta function)
-    require_once "../../../config/Utilities.php";
-
-    //require class_ model
-    require_once '../../../models/class_.php';
+    //require student class to instantiate an object
+    require_once '../../../models/student.php';
 
     //require Database class to get connect to database
     require_once '../../../config/Database.php';
 
-    //collecting posted data
-    $data = array();
-    if (isset($_POST['class'])) {
-        //collect data
-        $data = array('name' => $_POST['niveau']);
-
-        //Api url
-        $api_url = 'http://localhost:8888/sec/api/class_/create.php';
-
-        //response
-        $res = postData($api_url, $data);
-//        echo $res;
-
-    }
-
-
+    $data = json_decode(file_get_contents("http://localhost:8888/sec/api/class_/getClasses.php"),TRUE);
+//    var_dump($data);
+    $nbr = sizeof($data);
+    $i = 0;
 
     //connection to database
     $database = new Database();
     $conn = $database->getConnection();
 
-    //collect classes here to display them in select element
-    //instantiate an object here
-    $class = new Class_($conn);
-    $classes = $class->getClasses()->fetchAll(PDO::FETCH_ASSOC);
+    //get subject instance here
+    $student = new Student($conn);
 
-    //create subject
-    if (isset($_POST['subject'])) {
-        //collect data
-        $data = array('name' => $_POST['matiere'],
-                      'class_id' => $_POST['class_id']
-        );
-
-        //Api url
-        $api_url = 'http://localhost:8888/sec/api/subject/create.php';
-
-        //response
-        $res = postData($api_url, $data);
-    }
+    //get the number total of students
+    $total = $student->getStudents()->rowCount();
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -60,7 +34,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../css/nav.css">
-    <link rel="stylesheet" href="../css/add_class_subject.css">
+    <link rel="stylesheet" href="../css/classes.css">
     <link rel="stylesheet" href="../css/pers.css">
     <link rel="stylesheet" href="font-awesome-4.7.0/css/font-awesome.min.css" >
     <title>CSS STYLE</title>
@@ -77,19 +51,19 @@
                     <a href="#" class="first_link"> <img src="../icons/home 1.svg" alt="" class="one"> Acceuille </a>
                 </div>
                 <div class="element">
-                    <a href="../student/students.php" class="first_link"> <img src="../icons/writing 1.svg" alt="" class="one"> Élèves <img src="../icons/next.svg" alt="" class="two"></a>
+                    <a href="#" class="first_link"> <img src="../icons/writing 1.svg" alt="" class="one"> Élèves <img src="../icons/next.svg" alt="" class="two"></a>
                     <ul>
-                        <li><a href="../student/students.php"><img src="../icons/next.svg" alt="">Tous les élèves</a></li>
-                        <li><a href="../student/addStudent.php"><img src="../icons/next.svg" alt="">Ajouter un eleve</a></li>
-                        <li><a href="../student/delete_update.php"><img src="../icons/next.svg" alt="">supprimer/modifier</a></li>
+                        <li><a href="../student/students.php"><img src="icons/next.svg" alt="">Tous les élèves</a></li>
+                        <li><a href="../student/addStudent.php"><img src="icons/next.svg" alt="">Ajouter un eleve</a></li>
+                        <li><a href="../student/delete_update.php"><img src="icons/next.svg" alt="">supprimer/modifier</a></li>
                     </ul>
                 </div>
 
                 <div class="element">
                     <a href="#" class="first_link"> <img src="../icons/writing 1.svg" alt="" class="one"> Classes <img src="../icons/next.svg" alt="" class="two"></a>
                     <ul>
-                        <li><a href="classes.php"><img src="../icons/next.svg" alt="">Tous les Niveaux</a></li>
-                        <li><a href=""><img src="../icons/next.svg" alt="">Ajouter un niveau</a></li>
+                        <li><a href=""><img src="../icons/next.svg" alt="">Tous les Niveaux</a></li>
+                        <li><a href="add.php"><img src="../icons/next.svg" alt="">Ajouter un niveau</a></li>
                         <li><a href="delete_update.php"><img src="../icons/next.svg" alt="">supprimer/modifier</a></li>
                     </ul>
                 </div>
@@ -125,34 +99,76 @@
                 </div>
             </div>
         </nav>
-        <div class="m-container">
-            <div class="form-container">
-                <h1>Ajouter une matiere</h1>
-                <form action="" method="POST">
-                    <div>
-                        <label for="matiere">Matiere*</label>
-                        <input type="text" name="matiere" id="matiere" required>
-                        <select name="class_id" id="class" required>
-                            <option value=""  disabled selected> Niveau</option>
-                            //iterate on classes
-                            <?php foreach($classes as $option) {?>
-                            <option value="<?php echo $option['id']; ?>"><?php echo $option['name']; ?></option>
-                            <?php }?>
-                        </select>
-                    </div>
-                    <input type="button" value="Reintialiser" class="rei">
-                    <input type="submit" name="subject" value="Modifier" class="enreg">
-                </form>
+        <div class="x-container">
+            <div class="first-container totale-m">
+                <h5 class="totale-head">Totale</h5>
+                <div class="genders">
+                    <h4 class="number-head"><?php echo $total; ?></h4>
+                </div>
             </div>
-            <div class="form-container">
-                <h1 id="h1">Ajouer un niveau</h1>
-                <form action="" method="POST">
-                    <div>
-                        <label for="niveau">Niveau*</label>
-                        <input type="text" name="niveau" id="niveau" class="niveau" required>
+            <div class="first-container">
+                <?php
+                    $end1 = 3;
+                    for($i ; $i < $end1 && $i < $nbr ; $i++){
+                ?>
+                <div class="class-container">
+                    <h1>
+                        <?php
+                            echo $data[$i]['name'];
+                            $student->class_id = $data[$i]['id'];
+                            $classTotal = $student->getStudentsInClass()->rowCount();
+                            $male = $student->getGenderInClass('M')->rowCount();
+                            $female = $student->getGenderInClass('F')->rowCount();
+                        ?>
+                    </h1>
+                    <div class="genders">
+                        <div class="gendre">
+                            <h3>Male</h3>
+                            <h4 class="number"><?php echo $male; ?></h4>
+                        </div>
+                        <div class="gendre">
+                            <h3>Female</h3>
+                            <h4 class="number"><?php echo $female; ?></h4>
+                        </div>
                     </div>
-                    <input type="submit" name="class" value="Ajouter" class="enreg">
-                </form>
+                    <div class="totale">
+                        <h3>Totale</h3>
+                        <h4 class="number"><?php echo $classTotal; ?></h4>
+                    </div>
+                </div>
+                <?php }?>
+            </div>
+            <div class="first-container">
+                <?php
+                $end1 = min($nbr-1,5);
+                for($i ; $i <= $end1 && $i <= $nbr ; $i++){
+                    ?>
+                    <div class="class-container">
+                        <h1>
+                            <?php
+                            echo $data[$i]['name'];
+                            $student->class_id = $data[$i]['id'];
+                            $classTotal = $student->getStudentsInClass()->rowCount();
+                            $male = $student->getGenderInClass('M')->rowCount();
+                            $female = $student->getGenderInClass('F')->rowCount();
+                            ?>
+                        </h1>
+                        <div class="genders">
+                            <div class="gendre">
+                                <h3>Male</h3>
+                                <h4 class="number"><?php echo $male; ?></h4>
+                            </div>
+                            <div class="gendre">
+                                <h3>Female</h3>
+                                <h4 class="number"><?php echo $female; ?></h4>
+                            </div>
+                        </div>
+                        <div class="totale">
+                            <h3>Totale</h3>
+                            <h4 class="number"><?php echo $classTotal; ?></h4>
+                        </div>
+                    </div>
+                <?php }?>
             </div>
         </div>
         <div class="per-info">
@@ -176,7 +192,7 @@
                 </tr>
                 <tr>
                     <td>Date de naissance :</td>
-                    <td>05-05-2001</td>
+                    <td>Femme</td>
                 </tr>
                 <tr>
                     <td>Address :</td>
